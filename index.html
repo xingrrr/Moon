@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunar Cycle Calendar</title>
+    <script src="https://cdn.jsdelivr.net/npm/lunar-javascript/lunar.js"></script>
+    <style>
+        :root {
+            --bg-color: #fcfbf9;
+            --text-main: #4a4a4a;
+            --text-light: #a0a0a0;
+            --accent-color: #e57373; /* Soft Red for Period */
+            --accent-light: #ffebee;
+            --prediction-color: #ba68c8; /* Purple for Prediction */
+            --prediction-light: #f3e5f5;
+            --grid-border: #f0f0f0;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            overflow: hidden;
+            padding-bottom: 20px;
+        }
+
+        /* Header */
+        header {
+            padding: 25px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: var(--text-main);
+            padding: 5px 10px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .nav-btn:hover {
+            background-color: var(--grid-border);
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 15px;
+            padding: 0 25px 15px 25px;
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Calendar Grid */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            border-bottom: 1px solid var(--grid-border);
+        }
+
+        .weekday {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            font-weight: 600;
+            padding-bottom: 10px;
+        }
+
+        .day-cell {
+            aspect-ratio: 1/1; /* Perfect Square */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            font-size: 0.95rem;
+            border-top: 1px solid var(--grid-border);
+            transition: all 0.2s ease;
+        }
+
+        .day-cell:hover {
+            background-color: #fafafa;
+        }
+
+        .lunar-date {
+            font-size: 0.6rem;
+            color: var(--text-light);
+            margin-top: 2px;
+        }
+
+        /* States */
+        .day-cell.today {
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        /* Active Period Start */
+        .day-cell.active-start {
+            background-color: var(--accent-color);
+            color: white;
+            border-radius: 50%; /* Circle shape */
+            transform: scale(0.85); /* Slight shrink for aesthetic */
+        }
+        
+        .day-cell.active-start .lunar-date {
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Projected Date */
+        .day-cell.projected {
+            background-color: var(--bg-color);
+            border: 2px solid var(--prediction-color);
+            border-radius: 50%;
+            transform: scale(0.85);
+            color: var(--prediction-color);
+            font-weight: 600;
+        }
+
+        .day-cell.projected .lunar-date {
+            color: var(--prediction-color);
+        }
+
+        .day-cell.other-month {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Controls */
+        .controls {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .btn-main {
+            background-color: var(--text-main);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .btn-main:active {
+            transform: scale(0.98);
+        }
+
+        .info-text {
+            margin-top: 15px;
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <button class="nav-btn" onclick="changeMonth(-1)">&#8249;</button>
+        <h1 id="monthYearDisplay">Month Year</h1>
+        <button class="nav-btn" onclick="changeMonth(1)">&#8250;</button>
+    </header>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="dot" style="background: var(--accent-color)"></div>
+            <span>Period Start</span>
+        </div>
+        <div class="legend-item">
+            <div class="dot" style="border: 2px solid var(--prediction-color); box-sizing: border-box;"></div>
+            <span>Next (+28 Days)</span>
+        </div>
+    </div>
+
+    <div class="calendar-grid" style="border:none; padding-bottom: 5px;">
+        <div class="weekday">Sun</div>
+        <div class="weekday">Mon</div>
+        <div class="weekday">Tue</div>
+        <div class="weekday">Wed</div>
+        <div class="weekday">Thu</div>
+        <div class="weekday">Fri</div>
+        <div class="weekday">Sat</div>
+    </div>
+
+    <div class="calendar-grid" id="calendarGrid">
+        </div>
+
+    <div class="controls">
+        <button class="btn-main" onclick="recordToday()">Record Today</button>
+        <div class="info-text" id="statusText">Select a date or click button to start.</div>
+    </div>
+</div>
+
+<script>
+    // --- State Management ---
+    const today = new Date();
+    let currentMonth = today.getMonth();
+    let currentYear = today.getFullYear();
+    let periodStartDate = localStorage.getItem('periodStartDate') 
+        ? new Date(localStorage.getItem('periodStartDate')) 
+        : null;
+
+    const grid = document.getElementById('calendarGrid');
+    const monthLabel = document.getElementById('monthYearDisplay');
+    const statusText = document.getElementById('statusText');
+
+    // --- Lunar Helper ---
+    function getLunarText(date) {
+        // Using lunar-javascript library
+        const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate());
+        const lunar = solar.getLunar();
+        
+        // If it's the 1st day of the lunar month, show month name (e.g., 正月, 二月)
+        // Otherwise show the day (e.g., 初一, 十五)
+        if (lunar.getDay() === 1) {
+            return lunar.getMonthInChinese() + "月";
+        }
+        return lunar.getDayInChinese();
+    }
+
+    // --- Core Logic ---
+
+    function renderCalendar() {
+        grid.innerHTML = "";
+        
+        // Update Header
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        monthLabel.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+        // Calculate Next Period Date
+        let nextPeriodDate = null;
+        if (periodStartDate) {
+            nextPeriodDate = new Date(periodStartDate);
+            nextPeriodDate.setDate(periodStartDate.getDate() + 28);
+            
+            // Update status text
+            statusText.textContent = `Cycle Day ${getCycleDay(today)}. Next: ${nextPeriodDate.toLocaleDateString()}`;
+        } else {
+            statusText.textContent = "No active record. Tap a date to set start.";
+        }
+
+        // Geometry of the month
+        const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+        
+        // Previous month padding
+        const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+        for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+            const day = daysInPrevMonth - i;
+            const cell = createCell(day, true);
+            grid.appendChild(cell);
+        }
+
+        // Current month days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(currentYear, currentMonth, day);
+            const isToday = isSameDay(date, today);
+            const isStart = periodStartDate && isSameDay(date, periodStartDate);
+            const isProjected = nextPeriodDate && isSameDay(date, nextPeriodDate);
+
+            const cell = createCell(day, false, date, isToday, isStart, isProjected);
+            grid.appendChild(cell);
+        }
+
+        // Next month padding (to fill grid)
+        const totalCells = firstDayOfMonth + daysInMonth;
+        const remainingCells = 42 - totalCells; // 6 rows * 7 cols = 42
+        for (let i = 1; i <= remainingCells; i++) {
+            const cell = createCell(i, true);
+            grid.appendChild(cell);
+        }
+    }
+
+    function createCell(dayNum, isPadding, fullDate = null, isToday = false, isStart = false, isProjected = false) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+        if (isPadding) cell.classList.add('other-month');
+        if (isToday) cell.classList.add('today');
+        if (isStart) cell.classList.add('active-start');
+        if (isProjected) cell.classList.add('projected');
+
+        // Gregorian Date
+        const daySpan = document.createElement('span');
+        daySpan.textContent = dayNum;
+        cell.appendChild(daySpan);
+
+        // Lunar Date (Only for valid dates in this month)
+        if (!isPadding && fullDate) {
+            const lunarSpan = document.createElement('div');
+            lunarSpan.className = 'lunar-date';
+            lunarSpan.textContent = getLunarText(fullDate);
+            cell.appendChild(lunarSpan);
+
+            // Click Event
+            cell.onclick = () => setNewStart(fullDate);
+        } else {
+            // Placeholder for padding to keep alignment
+            const placeholder = document.createElement('div');
+            placeholder.className = 'lunar-date';
+            placeholder.innerHTML = "&nbsp;";
+            cell.appendChild(placeholder);
+        }
+
+        return cell;
+    }
+
+    // --- Actions ---
+
+    function changeMonth(step) {
+        currentMonth += step;
+        if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+        } else if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+        }
+        renderCalendar();
+    }
+
+    function recordToday() {
+        setNewStart(new Date());
+        // Jump to today if we are far away
+        currentMonth = today.getMonth();
+        currentYear = today.getFullYear();
+        renderCalendar();
+    }
+
+    function setNewStart(date) {
+        // Normalize time to midnight to avoid issues
+        const cleanDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        periodStartDate = cleanDate;
+        
+        // Persist
+        localStorage.setItem('periodStartDate', periodStartDate.toISOString());
+        
+        renderCalendar();
+    }
+
+    // --- Utilities ---
+
+    function isSameDay(d1, d2) {
+        return d1.getFullYear() === d2.getFullYear() &&
+               d1.getMonth() === d2.getMonth() &&
+               d1.getDate() === d2.getDate();
+    }
+
+    function getCycleDay(current) {
+        if (!periodStartDate) return 0;
+        const diffTime = Math.abs(current - periodStartDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        // If current is before start, it's negative, but usually we track forward. 
+        // For simplicity in this basic app, we just show difference.
+        return diffDays + 1; // Day 1 is the start day
+    }
+
+    // Initialize
+    renderCalendar();
+
+</script>
+
+</body>
+</html>
